@@ -1,82 +1,60 @@
 import cv2
-import os
+import numpy as np
+import matplotlib.pyplot as plt
 
 
-def load_images(folder_path):
-    images = []
-    for filename in os.listdir(folder_path):
-        # Check if file is an image file
-        if filename.endswith('.jpeg') or filename.endswith('.png'):
-            # Load the image using OpenCV and resize it
-            image = cv2.imread(os.path.join(folder_path, filename))
-            images.append(image)
-    return images
+def gradient_simple(img):
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    grad_x = np.diff(img_gray, axis=1, append=0)
+    grad_y = np.diff(img_gray, axis=0, append=0)
+    grad = np.sqrt(grad_x ** 2 + grad_y ** 2)
+    grad_orient = np.arctan2(grad_y, grad_x) * (180 / np.pi) % 180
+    return img_gray, grad_x, grad_y, grad, grad_orient
 
 
-def resize_images(images, width, height):
-    resized_images = []
-    for image in images:
-        resized_image = cv2.resize(image, (width, height))
-        resized_images.append(resized_image)
-    return resized_images
+def show_gradients(img, img_gray, grad_x, grad_y, grad, grad_orient):
+    fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(15, 15))
+    ax[0, 0].imshow(img)
+    ax[0, 0].set_title('Original Image')
+    ax[0, 1].imshow(img_gray, cmap='gray')
+    ax[0, 1].set_title('Gray Image')
+    ax[1, 0].imshow(grad_x, cmap='gray')
+    ax[1, 0].set_title('Gradient in direction X')
+    ax[1, 1].imshow(grad_y, cmap='gray')
+    ax[1, 1].set_title('Gradient in direction Y')
+    ax[2, 0].imshow(grad, cmap='jet')
+    ax[2, 0].set_title('Magnitude of the Gradient')
+    ax[2, 1].imshow(grad_orient, cmap='jet')
+    ax[2, 1].set_title('Orientation of the Gradient')
+    plt.show()
 
 
-def stitch_images(images):
-    stitcher = cv2.Stitcher.create()
-    (status, stitched_image) = stitcher.stitch(images)
-    if status == cv2.STITCHER_OK:
-        return stitched_image
-    else:
-        return None
+def gradient_sobel(img):
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    grad_x = cv2.Sobel(img_gray, ddepth=cv2.CV_64F, dx=1, dy=0, ksize=3)
+    grad_y = cv2.Sobel(img_gray, ddepth=cv2.CV_64F, dx=0, dy=1, ksize=3)
+    grad = cv2.magnitude(grad_x, grad_y)
+    grad_orient = cv2.phase(np.array(grad_x, np.float32), np.array(grad_y, dtype=np.float32), angleInDegrees=True)
+    return img_gray, grad_x, grad_y, grad, grad_orient
 
 
-def crop_image(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)[1]
-    contours = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
-    x, y, w, h = cv2.boundingRect(contours[0])
-    cropped_image = image[y:y + h, x:x + w]
-    return cropped_image
+img_dog = cv2.imread('dog.jpg', cv2.IMREAD_COLOR)
+imhead = img_dog.copy()
+
+img_gray, grad_x, grad_y, grad, grad_orient = gradient_sobel(imhead)
+show_gradients(imhead, img_gray, grad_x, grad_y, grad, grad_orient)
 
 
-def preview_and_save_image(image, folder_path, folder_name):
-    # Display the stitched image
-    cv2.namedWindow('Stitched Image', cv2.WINDOW_NORMAL)
-    cv2.imshow('Stitched Image', image)
-    cv2.waitKey(0)
-
-    # Save the stitched image
-    output_filename = os.path.join(folder_path, folder_name + '_panorama.jpg')
-    cv2.imwrite(output_filename, image)
-    print('Stitched image saved for folder:', folder_name)
+def gradient_canny(img):
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    edge = cv2.Canny(img_gray, 80, 200)
+    return img_gray, edge
 
 
-def stitch_folder(folder_path, width=800, height=800):
-    # Stitch all images in a folder and save the result.
-    # Load the images from the folder
-    images = load_images(folder_path)
+img_gray, edge = gradient_canny(img_dog)
 
-    # Check if there are at least two images in the folder
-    if len(images) < 2:
-        print('Not enough images in folder:', folder_path)
-        return
-
-    # Resize the images
-    resized_images = resize_images(images, width, height)
-
-    # Stitch the images
-    stitched_image = stitch_images(resized_images)
-    if stitched_image is None:
-        print('Stitching failed for folder:', folder_path)
-        return
-
-    # Crop the stitched image
-    cropped_image = crop_image(stitched_image)
-
-    # Preview and save the stitched image
-    folder_name = os.path.basename(folder_path)
-    preview_and_save_image(cropped_image, folder_path, folder_name)
-
-stitch_folder('sample_images')
-
-
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(15, 5))
+ax[0].imshow(img_dog)
+ax[0].set_title('Original Image')
+ax[1].imshow(edge, cmap='gray')
+ax[1].set_title('Edges detected by Canny Filter')
