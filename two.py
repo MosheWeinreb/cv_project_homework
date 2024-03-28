@@ -25,5 +25,6 @@ cv2.drawContours(result, contours, -1, (0, 0, 0), 2)  # Draw contours in black c
 
 # Display the result
 cv2.imshow('Segmented Text', result)
+cv2.imshow("before",image)
 cv2.waitKey(0)
 cv2.destroyAllWindows()

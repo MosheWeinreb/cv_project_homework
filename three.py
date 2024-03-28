@@ -1,20 +1,28 @@
 import cv2
 import face_recognition
 
-reference_image = face_recognition.load_image_file("face and id.jpg")
-id_image = face_recognition.load_image_file("face.jpg")
-reference_face_locations = face_recognition.face_locations(reference_image)
-id_face_locations = face_recognition.face_locations(id_image)
+# Load the passport image
+passport_image = face_recognition.load_image_file("teudat_zehut.jpg")
 
-reference_face_encodings = face_recognition.face_encodings(reference_image, reference_face_locations)
-id_face_encodings = face_recognition.face_encodings(id_image, id_face_locations)
+# Load your image
+my_image = face_recognition.load_image_file("my_pic.jpg")
 
-print(id_face_encodings)
-for id_face_encoding in id_face_encodings:
-    matches = face_recognition.compare_faces(reference_face_encodings, id_face_encoding)
+# Find face encodings for the passport image
+passport_face_encodings = face_recognition.face_encodings(passport_image)
 
+# Find face encodings for your image
+my_face_encodings = face_recognition.face_encodings(my_image)
 
-    if True in matches:
-        print("Verification successful: The ID photo matches the reference photo.")
+# Check if there are faces in both images
+if len(passport_face_encodings) > 0 and len(my_face_encodings) > 0:
+    # Compare the faces
+    match = face_recognition.compare_faces(passport_face_encodings, my_face_encodings[0])
+
+    if match[0]:
+        print("It's likely the same person in both images.")
+
     else:
-        print("Verification failed: The ID photo does not match the reference photo.")
+        print("Faces don't match.")
+
+else:
+    print("No faces found in one or both images.")

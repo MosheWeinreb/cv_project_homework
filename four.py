@@ -77,6 +77,6 @@ def stitch_folder(folder_path, width=800, height=800):
     folder_name = os.path.basename(folder_path)
     preview_and_save_image(cropped_image, folder_path, folder_name)
 
-stitch_folder('sample_images')
+stitch_folder("sample_images")
 
 
